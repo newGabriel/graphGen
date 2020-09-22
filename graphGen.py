@@ -7,22 +7,28 @@ import igraph as ig
 import cv2 as cv
 
 
-"""sKnnGraph(X, n)
+"""KnnGraph(X, n, t='S', pon=0)
 
-	Retorna um grafo(igraph) gerado pelo Knn simétrico.
+	Retorna um grafo(igraph) gerado pelo Knn.
 
 	O grafo gerado contem len(X) vértices e as arestas são a maximização
 	das $n menores distâncias entre cada um dos vértices.
 	O grafo é um objeto da classe igraph
-	
+
 	@param X: Matriz numpy onde cada linha contem as características de
 			  um objeto.
-	
+
 	@param n: Número de arestas (mínimo) para ser considerado para maximização.
-	
+
+	@param t: Modo da construção do grafo, 'M' para knn mutuo, 'S' para knn
+			  Simetrico(padrão).
+
+	@param pon: Modo de contrução do grafo, 0 para não direcionado(padrão),
+				1 para direcionada.
+
 	@return: grafo igraph.
 """
-def sKnnGraph(X, n):
+def knnGraph(X, n, t='S', pon=0):
   m = np.zeros((len(X),len(X)))
   for i in range(len(X)):
     la = []
@@ -41,8 +47,38 @@ def sKnnGraph(X, n):
           ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
     for j in la:
       m[i, j] = 1
-  m = np.fmax(m, m.T)
+
+  if t=='S':
+    m = np.fmax(m, m.T)
+  elif t=='M':
+    m = np.fmin(m, m.T)
+
   g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+  if pon==1:
+    g.es["weight"] = 1.0
+    for i in g.get_edgelist():
+      g[i[0],i[1]] = cv.compareHist(X[i[0]],X[i[1]],cv.HISTCMP_BHATTACHARYYA)
+
+  return g
+
+
+"""sKnnGraph(X, n)
+
+	Retorna um grafo(igraph) gerado pelo Knn simétrico.
+
+	O grafo gerado contem len(X) vértices e as arestas são a maximização
+	das $n menores distâncias entre cada um dos vértices.
+	O grafo é um objeto da classe igraph
+	
+	@param X: Matriz numpy onde cada linha contem as características de
+			  um objeto.
+	
+	@param n: Número de arestas (mínimo) para ser considerado para maximização.
+	
+	@return: grafo igraph.
+"""
+def sKnnGraph(X, n):
+  g = knnGraph(X,n,'S')
   return g
 
 
@@ -63,26 +99,7 @@ def sKnnGraph(X, n):
 	
 """
 def mKnnGraph(X, n):
-  m = np.zeros((len(X),len(X)))
-  for i in range(len(X)):
-    la = []
-    ld = []
-    for j in range(len(X)):
-      if i == j:
-        continue
-      elif len(la)<n:
-        la.append(j)
-        ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-      else:
-        if cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA)<max(ld):
-          del la[ld.index(max(ld))]
-          ld.remove(max(ld))
-          la.append(j)
-          ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-    for j in la:
-      m[i, j] = 1
-  m = np.fmin(m, m.T)
-  g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+  g = knnGraph(X,n,'M')
   return g
 
 
@@ -159,6 +176,17 @@ def eMKnnGraph(X, n, e):
   return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
+"""pureza(c,y)
+	
+	Returna um número real com valor da pureza de uma clusterização.
+	
+	@param c: Clusterização ig.Graph.communit_...
+	
+	@param y: Matriz onde cada linha é o label do objeto (iniciando em 1).
+	
+	@return: Valor float.
+
+"""
 def pureza(c,y):
   t = 0
   for i in c:
@@ -170,6 +198,17 @@ def pureza(c,y):
   return pr
 
 
+"""colocacao(c,y)
+	
+	Returna um número real com valor da colocação de uma clusterização.
+	
+	@param c: Clusterização ig.Graph.communit_...
+	
+	@param y: Matriz onde cada linha é o label do objeto (iniciando em 1).
+	
+	@return: Valor float.
+
+"""
 def colocacao(c, y):
   t = 0
   y1 = np.array(range(len(y)))

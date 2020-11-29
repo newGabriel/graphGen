@@ -77,8 +77,8 @@ def knnGraph(X, n, t='S', pon=0):
 	
 	@return: grafo igraph.
 """
-def sKnnGraph(X, n):
-  g = knnGraph(X,n,'S')
+def sKnnGraph(X, n,pon=0):
+  g = knnGraph(X,n,'S',pon)
   return g
 
 
@@ -98,8 +98,8 @@ def sKnnGraph(X, n):
 	@return: grafo igraph.
 	
 """
-def mKnnGraph(X, n):
-  g = knnGraph(X,n,'M')
+def mKnnGraph(X, n, pon=0):
+  g = knnGraph(X,n,'M',pon)
   return g
 
 
@@ -174,6 +174,48 @@ def eMKnnGraph(X, n, e):
   eN = eNGraph(X, e)
   m = np.maximum(list(knn.get_adjacency()),list(eN.get_adjacency()))
   return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+
+
+'''eSKnnMST(X, n, e)
+	
+	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
+	com a maximização da vizinhaça e pelo SKnn
+	
+	@param X: Matriz numpy onde cada linha contem as características de
+			  um objeto.
+	
+	@param n: Número de arestas para ser considerado no MKnn.
+	
+	@param e: Distancia do raio de conecção.
+	
+	@return: grafo igraph.
+	
+'''
+def eSKnnMST(X, n, e):
+  MST = knnGraph(X,len(X),pon=1).spanning_tree()
+  eknn = eSKnnGraph(X,n,e)
+  return eknn.union(MST)
+
+
+'''eMKnnMST(X, n, e)
+	
+	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
+	com a maximização da vizinhaça e pelo MKnn
+	
+	@param X: Matriz numpy onde cada linha contem as características de
+			  um objeto.
+	
+	@param n: Número de arestas para ser considerado no MKnn.
+	
+	@param e: Distancia do raio de conecção.
+	
+	@return: grafo igraph.
+	
+'''
+def eMKnnMST(X, n, e):
+  MST = knnGraph(X,len(X),pon=1).spanning_tree()
+  eknn = eMKnnGraph(X,n,e)
+  return eknn.union(MST)
 
 
 """pureza(c,y)

@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
 
-import pandas as pd
 import numpy as np
 import igraph as ig
-import cv2 as cv
+from numpy.linalg import norm
 
 
-def knnGraph(X, n, t='S', pon=0):
-  """
+def similarity(x1, x2):
+    return norm(x1 - x2)
+
+
+def knnGraph(X, n, t='S', pon=0, dif=similarity):
+    """
   
 	Retorna um grafo(igraph) gerado pelo Knn.
 
@@ -23,44 +26,47 @@ def knnGraph(X, n, t='S', pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
 
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
+
   """
 
-  m = np.zeros((len(X),len(X)))
-  for i in range(len(X)):
-    la = []
-    ld = []
-    for j in range(len(X)):
-      if i == j:
-        continue
-      elif len(la)<n:
-        la.append(j)
-        ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-      else:
-        if cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA)<max(ld):
-          del la[ld.index(max(ld))]
-          ld.remove(max(ld))
-          la.append(j)
-          ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-    for j in la:
-      m[i, j] = 1
+    m = np.zeros((len(X), len(X)))
+    for i in range(len(X)):
+        la = []
+        ld = []
+        for j in range(len(X)):
+            if i == j:
+                continue
+            elif len(la) < n:
+                la.append(j)
+                ld.append(dif(X[i], X[j]))
+            else:
+                if dif(X[i], X[j]) < max(ld):
+                    del la[ld.index(max(ld))]
+                    ld.remove(max(ld))
+                    la.append(j)
+                    ld.append(dif(X[i], X[j]))
+        for j in la:
+            m[i, j] = 1
 
-  if t=='S':
-    m = np.fmax(m, m.T)
-  elif t=='M':
-    m = np.fmin(m, m.T)
+    if t == 'S':
+        m = np.fmax(m, m.T)
+    elif t == 'M':
+        m = np.fmin(m, m.T)
 
-  g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
-  if pon==1:
-    g.es["weight"] = 1.0
-    for i in g.get_edgelist():
-      g[i[0],i[1]] = cv.compareHist(X[i[0]],X[i[1]],cv.HISTCMP_BHATTACHARYYA)
+    g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+    if pon == 1:
+        g.es["weight"] = 1.0
+        for i in g.get_edgelist():
+            g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
 
-  return g
+    return g
 
 
-def kmnGraph(X, n, pon=0):
-  """
+def kmnGraph(X, n, pon=0, dif=similarity):
+    """
 
 	Retorna um grafo(igraph) gerado pelo Kmn.
 
@@ -74,40 +80,42 @@ def kmnGraph(X, n, pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
   """
-  m = np.zeros((len(X),len(X)))
-  for i in range(len(X)):
-    la = []
-    ld = []
-    for j in range(len(X)):
-      if i == j:
-        continue
-      elif len(la)<n:
-        la.append(j)
-        ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-      else:
-        if cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA)>min(ld):
-          del la[ld.index(min(ld))]
-          ld.remove(min(ld))
-          la.append(j)
-          ld.append(cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA))
-    for j in la:
-      m[i, j] = 1
-      
-  m = np.fmax(m, m.T)
+    m = np.zeros((len(X), len(X)))
+    for i in range(len(X)):
+        la = []
+        ld = []
+        for j in range(len(X)):
+            if i == j:
+                continue
+            elif len(la) < n:
+                la.append(j)
+                ld.append(dif(X[i], X[j]))
+            else:
+                if dif(X[i], X[j]) > min(ld):
+                    del la[ld.index(min(ld))]
+                    ld.remove(min(ld))
+                    la.append(j)
+                    ld.append(dif(X[i], X[j]))
+        for j in la:
+            m[i, j] = 1
 
-  g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
-  if pon==1:
-    g.es["weight"] = 1.0
-    for i in g.get_edgelist():
-      g[i[0],i[1]] = cv.compareHist(X[i[0]],X[i[1]],cv.HISTCMP_BHATTACHARYYA)
+    m = np.fmax(m, m.T)
 
-  return g
+    g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+    if pon == 1:
+        g.es["weight"] = 1.0
+        for i in g.get_edgelist():
+            g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
+
+    return g
 
 
-def sKnnGraph(X, n,pon=0):
-  """
+def sKnnGraph(X, n, pon=0, dif=similarity):
+    """
 
 	Retorna um grafo(igraph) gerado pelo Knn simétrico.
 
@@ -120,15 +128,17 @@ def sKnnGraph(X, n,pon=0):
 	@param n Número de arestas (mínimo) para ser considerado para maximização.
 	
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 	
 	@return Grafo igraph.
   """
-  g = knnGraph(X,n,'S',pon)
-  return g
+    g = knnGraph(X, n, 'S', pon, dif)
+    return g
 
 
-def mKnnGraph(X, n, pon=0):
-  """
+def mKnnGraph(X, n, pon=0, dif=similarity):
+    """
 
 	Retorna um grafo(igraph) gerado pelo Knn mutuo.
 	
@@ -142,15 +152,17 @@ def mKnnGraph(X, n, pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 	
   """
-  g = knnGraph(X,n,'M',pon)
-  return g
+    g = knnGraph(X, n, 'M', pon, dif)
+    return g
 
 
-def eNGraph(X, e,pon=0):
-  """
+def eNGraph(X, e, pon=0, dif=similarity):
+    """
 
 	Retorna um grafo(igraph) gerado por vizinhança e.
 	
@@ -163,29 +175,31 @@ def eNGraph(X, e,pon=0):
 	@param e Distancia do raio de conecção. 
 	
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 	
 	@return Grafo igraph.
 	
   """
-  
-  m = np.zeros((len(X),len(X)))
-  for i in range(len(X)):
-    for j in range(len(X)):
-      if i == j:
-        continue
-      elif cv.compareHist(X[i],X[j],cv.HISTCMP_BHATTACHARYYA)<=e:
-        m[i,j]=1
-  m = np.fmax(m, m.T)
-  g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)  
-  if pon==1:
-    g.es["weight"] = 1.0
-    for i in g.get_edgelist():
-      g[i[0],i[1]] = cv.compareHist(X[i[0]],X[i[1]],cv.HISTCMP_BHATTACHARYYA)
-  return g
+
+    m = np.zeros((len(X), len(X)))
+    for i in range(len(X)):
+        for j in range(len(X)):
+            if i == j:
+                continue
+            elif dif(X[i], X[j]) <= e:
+                m[i, j] = 1
+    m = np.fmax(m, m.T)
+    g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+    if pon == 1:
+        g.es["weight"] = 1.0
+        for i in g.get_edgelist():
+            g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
+    return g
 
 
-def eSKnnGraph(X, n, e, pon=0):
-  """
+def eSKnnGraph(X, n, e, pon=0, dif=similarity):
+    """
 	
 	Retorna um grafo (igraph) gerado pela maximização da vizinhança e
 	pelo SKnn
@@ -197,19 +211,21 @@ def eSKnnGraph(X, n, e, pon=0):
 	@param e Distancia do raio de conecção.
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-	
+
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 
   """
-  
-  knn = sKnnGraph(X, n, pon)
-  eN = eNGraph(X, e, pon)
-  m = np.maximum(list(knn.get_adjacency()),list(eN.get_adjacency()))
-  return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+
+    knn = sKnnGraph(X, n, pon, dif=dif)
+    eN = eNGraph(X, e, pon, dif=dif)
+    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
+    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eMKnnGraph(X, n, e, pon=0):
-  """
+def eMKnnGraph(X, n, e, pon=0, dif=similarity):
+    """
 	
 	Retorna um grafo (igraph) gerado pela maximização da vizinhança e
 	pelo MKnn
@@ -221,19 +237,21 @@ def eMKnnGraph(X, n, e, pon=0):
 	@param e Distancia do raio de conecção.
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-	
+
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 
   """
 
-  knn = mKnnGraph(X, n,pon)
-  eN = eNGraph(X, e,pon)
-  m = np.maximum(list(knn.get_adjacency()),list(eN.get_adjacency()))
-  return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+    knn = mKnnGraph(X, n, pon, dif)
+    eN = eNGraph(X, e, pon, dif)
+    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
+    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eSKnnMST(X, n, e, pon=0):
-  '''
+def eSKnnMST(X, n, e, pon=0, dif=similarity):
+    '''
 	
 	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
 	com a maximização da vizinhaça e pelo SKnn
@@ -246,17 +264,19 @@ def eSKnnMST(X, n, e, pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 	
   '''
 
-  MST = knnGraph(X,len(X),pon=1).spanning_tree()
-  eknn = eSKnnGraph(X,n,e,pon)
-  return eknn.union(MST)
+    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
+    eknn = eSKnnGraph(X, n, e, pon, dif)
+    return eknn.union(MST)
 
 
-def eMKnnMST(X, n, e, pon=0):
-  '''
+def eMKnnMST(X, n, e, pon=0, dif=similarity):
+    '''
 	
 	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
 	com a maximização da vizinhaça e pelo MKnn
@@ -269,17 +289,19 @@ def eMKnnMST(X, n, e, pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 	
   '''
 
-  MST = knnGraph(X,len(X),pon=1).spanning_tree()
-  eknn = eMKnnGraph(X,n,e)
-  return eknn.union(MST)
+    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
+    eknn = eMKnnGraph(X, n, e, pon=pon, dif=dif)
+    return eknn.union(MST)
 
 
-def kmnnGraph(X,k,k1,t='S',pon=0):
-  '''
+def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity):
+    '''
 	
 	Retorna um grafo (igraph) gerado pela união de knn + k'
 
@@ -297,15 +319,17 @@ def kmnnGraph(X,k,k1,t='S',pon=0):
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
 
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
 '''
 
-  g = knnGraph(X,k,t,pon)
-  return g.union(kmnGraph(X,k1,pon))
+    g = knnGraph(X, k, t, pon, dif)
+    return g.union(kmnGraph(X, k1, pon, dif))
 
 
-def eKmnnGraph(X,k,k1,e,pon=0):
-  '''
+def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity):
+    '''
 
 	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
 	com a maximização da vizinhaça e pelo Knn+k'
@@ -320,84 +344,93 @@ def eKmnnGraph(X,k,k1,e,pon=0):
 	
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
+	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
   '''
 
-  knn = kmnnGraph(X, k, k1)
-  eN = eNGraph(X, e)
-  m = np.maximum(list(knn.get_adjacency()),list(eN.get_adjacency()))
-  return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+    knn = kmnnGraph(X, k, k1, dif=dif)
+    eN = eNGraph(X, e, dif=dif)
+    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
+    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eKmnnMST(X,k,k1,e,pon=0):
-  '''
-	
+def eKmnnMST(X, k, k1, e, pon=0, dif=similarity):
+    '''
+
 	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
 	com a maximização da vizinhaça e pelo Knn+k'
-	
+
 	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
+
 	@param k Número de arestas para ser considerado no Knn.
-	
+
 	@param k1 Número de vertices mais distantes para serem ligados a cada vertice.
-	
+
 	@param e Distancia do raio de conecção.
 
 	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-	
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
 	@return Grafo igraph.
   '''
 
-  MST = knnGraph(X,len(X),pon=1).spanning_tree()
-  eknn = eKmnnGraph(X,k,k1,e)
-  return eknn.union(MST)
+    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
+    eknn = eKmnnGraph(X, k, k1, e, dif)
+    return eknn.union(MST)
 
 
-def pureza(c,y):
-  """
-	
-	Retorna um número real com valor da pureza de uma clusterização.
-	
-	@param c Clusterização ig.Graph.communit_...
-	
-	@param y Matriz onde cada linha é o label do objeto (iniciando em 1).
-	
-	@return Valor float.
+def pureza(c, y):
+    """
 
-  """
+      Retorna um número real com valor da pureza de uma clusterização.
 
-  t = 0
-  for i in c:
-    p = np.zeros(y.max())
-    for j in i:
-      p[y[j]-1] += 1
-    t += p.max()
-  pr = t/float(len(y))
-  return pr
+      @param c Clusterização ig.Graph.communit_...
+
+      @param y Matriz onde cada linha é o label do objeto (iniciando em 1).
+
+      @return Valor float.
+    """
+
+    t = 0
+    for i in c:
+        p = {}
+        for j in i:
+            if y[j] in p:
+                p[y[j]] += 1
+            else:
+                p[y[j]] = 1
+        t += max(p.values())
+    pr = t / float(len(y))
+    return pr
 
 
 def colocacao(c, y):
-  """
-	
-	Retorna um número real com valor da colocação de uma clusterização.
-	
-	
-	@param c Clusterização ig.Graph.communit_...
-	@param y Matriz onde cada linha é o label do objeto (iniciando em 1).
-	
-	@return Valor float.
+    """
 
-  """
+      Retorna um número real com valor da colocação de uma clusterização.
 
-  t = 0
-  y1 = np.array(range(len(y)))
-  y1 = y1.reshape((41,int(len(y)/41)))
-  for i in y1:
-    p = np.zeros(len(c))
-    for j in i:
-      for k in range(len(c)):
-        if j in c[k]:
-          p[k] += 1
-    t += p.max()
-  pr = t/float(len(y))
-  return pr
+
+      @param c Clusterização ig.Graph.communit_...
+      @param y Matriz onde cada linha é o label do objeto (iniciando em 1).
+
+      @return Valor float.
+    """
+    m = {}
+    for p,i in enumerate(y):
+        if i in m:
+            m[i].append(p)
+        else:
+            m[i] = [p]
+    c1 = np.zeros((len(y))).astype('int')
+    for p,i in enumerate(c):
+        for j in i:
+            c1[j] = p
+    #print(m.values())
+    return pureza(m.values(),c1)
+
+def media_harmonica(c, y):
+    pf = pureza(c, y)
+    cf = colocacao(c, y)
+    return (2*cf*pf)/(cf+pf)

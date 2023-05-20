@@ -10,45 +10,52 @@ def similarity(x1, x2):
     return norm(x1 - x2)
 
 
-def knnGraph(X, n, t='S', pon=0, dif=similarity):
+def knnGraph(X, n, t='S', pon=0, dif=similarity, target=0, y=None):
     """
-  
-	Retorna um grafo(igraph) gerado pelo Knn.
 
-	O grafo gerado contem len(X) vértices e as arestas são a maximização das n 
-	menores distâncias entre cada um dos vértices. O grafo é um objeto da classe igraph
+    Retorna um grafo(igraph) gerado pelo Knn.
 
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
+    O grafo gerado contem len(X) vértices e as arestas são a maximização das n
+    menores distâncias entre cada um dos vértices. O grafo é um objeto da classe igraph
 
-	@param n Número de arestas para ser considerado para maximização/minimização.
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-	@param t Modo da construção do grafo, 'M' para knn mutuo, 'S' para knn Simetrico(padrão).
+    @param n Número de arestas para ser considerado para maximização/minimização.
 
-	@param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
+    @param t Modo da construção do grafo, 'M' para knn mutuo, 'S' para knn Simetrico(padrão).
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
 
     @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 
-	@return Grafo igraph.
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
 
-  """
+    @param y lista contendo a classe de cada um dos objetos em X
 
+    @return Grafo igraph.
+
+    """
+
+    if target and y is None:
+        raise Exception('Para criação de grafos com classes é necessario receber uma lista de classes')
     m = np.zeros((len(X), len(X)))
     for i in range(len(X)):
-        la = []
-        ld = []
+        neighbor_list = []
+        distance_list = []
         for j in range(len(X)):
-            if i == j:
-                continue
-            elif len(la) < n:
-                la.append(j)
-                ld.append(dif(X[i], X[j]))
-            else:
-                if dif(X[i], X[j]) < max(ld):
-                    del la[ld.index(max(ld))]
-                    ld.remove(max(ld))
-                    la.append(j)
-                    ld.append(dif(X[i], X[j]))
-        for j in la:
+            if target == 0 or y[i] == y[j]:
+                if i == j:
+                    continue
+                elif len(neighbor_list) < n:
+                    neighbor_list.append(j)
+                    distance_list.append(dif(X[i], X[j]))
+                else:
+                    if dif(X[i], X[j]) < max(distance_list):
+                        del neighbor_list[distance_list.index(max(distance_list))]
+                        distance_list.remove(max(distance_list))
+                        neighbor_list.append(j)
+                        distance_list.append(dif(X[i], X[j]))
+        for j in neighbor_list:
             m[i, j] = 1
 
     if t == 'S':
@@ -65,41 +72,48 @@ def knnGraph(X, n, t='S', pon=0, dif=similarity):
     return g
 
 
-def kmnGraph(X, n, pon=0, dif=similarity):
+def kmnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
     """
 
-	Retorna um grafo(igraph) gerado pelo Kmn.
+    Retorna um grafo(igraph) gerado pelo Kmn.
 
-	O grafo gerado contem len(X) vértices e as arestas são a maximização
-	das n maiores distâncias entre cada um dos vértices.
-	O grafo é um objeto da classe igraph
+    O grafo gerado contem len(X) vértices e as arestas são a maximização
+    das n maiores distâncias entre cada um dos vértices.
+    O grafo é um objeto da classe igraph
 
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-	@param n Número de arestas para ser considerado para maximização.
+    @param n Número de arestas para ser considerado para maximização.
 
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 
-	@return Grafo igraph.
-  """
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+    """
+    if target == 1 and y is None:
+        raise Exception('Para criação de grafos com classes é necessario receber uma lista de classes')
     m = np.zeros((len(X), len(X)))
     for i in range(len(X)):
         la = []
         ld = []
         for j in range(len(X)):
-            if i == j:
-                continue
-            elif len(la) < n:
-                la.append(j)
-                ld.append(dif(X[i], X[j]))
-            else:
-                if dif(X[i], X[j]) > min(ld):
-                    del la[ld.index(min(ld))]
-                    ld.remove(min(ld))
+            if target == 0 or y[i] == y[j]:
+                if i == j:
+                    continue
+                elif len(la) < n:
                     la.append(j)
                     ld.append(dif(X[i], X[j]))
+                else:
+                    if dif(X[i], X[j]) > min(ld):
+                        del la[ld.index(min(ld))]
+                        ld.remove(min(ld))
+                        la.append(j)
+                        ld.append(dif(X[i], X[j]))
         for j in la:
             m[i, j] = 1
 
@@ -114,81 +128,41 @@ def kmnGraph(X, n, pon=0, dif=similarity):
     return g
 
 
-def sKnnGraph(X, n, pon=0, dif=similarity):
+def eNGraph(X, e, pon=0, dif=similarity, target=0, y=None):
     """
 
-	Retorna um grafo(igraph) gerado pelo Knn simétrico.
+    Retorna um grafo(igraph) gerado por vizinhança e.
 
-	O grafo gerado contem len(X) vértices e as arestas são a maximização
-	das $n menores distâncias entre cada um dos vértices.
-	O grafo é um objeto da classe igraph
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas (mínimo) para ser considerado para maximização.
-	
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    O grafo gerado contem len(X) vértices e as arestas conectam todos
+    vértices a uma distancia menor ou igual a $e.
+    O grafo é um objeto da classe igraph
 
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
-	
-	@return Grafo igraph.
-  """
-    g = knnGraph(X, n, 'S', pon, dif)
-    return g
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
+    @param e Distancia do raio de conecção.
 
-def mKnnGraph(X, n, pon=0, dif=similarity):
-    """
-
-	Retorna um grafo(igraph) gerado pelo Knn mutuo.
-	
-	O grafo gerado contem len(X) vértices e as arestas são a minimização
-	das $n menores distâncias entre cada um dos vértices.
-	O grafo é um objeto da classe igraph
-
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas (máximo) para ser considerado para minimização. 
-
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
     @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 
-	@return Grafo igraph.
-	
-  """
-    g = knnGraph(X, n, 'M', pon, dif)
-    return g
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
 
+    @param y lista contendo a classe de cada um dos objetos em X
 
-def eNGraph(X, e, pon=0, dif=similarity):
+    @return Grafo igraph.
+
     """
 
-	Retorna um grafo(igraph) gerado por vizinhança e.
-	
-	O grafo gerado contem len(X) vértices e as arestas conectam todos
-	vértices a uma distancia menor ou igual a $e.
-	O grafo é um objeto da classe igraph
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param e Distancia do raio de conecção. 
-	
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
-	
-	@return Grafo igraph.
-	
-  """
-
+    if target == 1 and y is None:
+        raise Exception('Para criação de grafos com classes é necessario receber uma lista de classes')
     m = np.zeros((len(X), len(X)))
     for i in range(len(X)):
         for j in range(len(X)):
-            if i == j:
-                continue
-            elif dif(X[i], X[j]) <= e:
-                m[i, j] = 1
+            if target == 0 or y[i] == y[j]:
+                if i == j:
+                    continue
+                elif dif(X[i], X[j]) <= e:
+                    m[i, j] = 1
     m = np.fmax(m, m.T)
     g = ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
     if pon == 1:
@@ -198,186 +172,263 @@ def eNGraph(X, e, pon=0, dif=similarity):
     return g
 
 
-def eSKnnGraph(X, n, e, pon=0, dif=similarity):
+def sKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
     """
-	
-	Retorna um grafo (igraph) gerado pela maximização da vizinhança e
-	pelo SKnn
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas para ser considerado no SKnn.
-	
-	@param e Distancia do raio de conecção.
 
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    Retorna um grafo(igraph) gerado pelo Knn simétrico.
 
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+    O grafo gerado contem len(X) vértices e as arestas são a maximização
+    das $n menores distâncias entre cada um dos vértices.
+    O grafo é um objeto da classe igraph
 
-	@return Grafo igraph.
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-  """
+    @param n Número de arestas (mínimo) para ser considerado para maximização.
 
-    knn = sKnnGraph(X, n, pon, dif=dif)
-    eN = eNGraph(X, e, pon, dif=dif)
-    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
-    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
-
-
-def eMKnnGraph(X, n, e, pon=0, dif=similarity):
-    """
-	
-	Retorna um grafo (igraph) gerado pela maximização da vizinhança e
-	pelo MKnn
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas para ser considerado no MKnn.
-	
-	@param e Distancia do raio de conecção.
-
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
-
-	@return Grafo igraph.
-
-  """
-
-    knn = mKnnGraph(X, n, pon, dif)
-    eN = eNGraph(X, e, pon, dif)
-    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
-    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
-
-
-def eSKnnMST(X, n, e, pon=0, dif=similarity):
-    '''
-	
-	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
-	com a maximização da vizinhaça e pelo SKnn
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas para ser considerado no MKnn.
-	
-	@param e Distancia do raio de conecção.
-
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
     @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 
-	@return Grafo igraph.
-	
-  '''
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
 
-    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
-    eknn = eSKnnGraph(X, n, e, pon, dif)
-    return eknn.union(MST)
+    @param y lista contendo a classe de cada um dos objetos em X
 
-
-def eMKnnMST(X, n, e, pon=0, dif=similarity):
-    '''
-	
-	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
-	com a maximização da vizinhaça e pelo MKnn
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param n Número de arestas para ser considerado no MKnn.
-	
-	@param e Distancia do raio de conecção.
-
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
-
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
-
-	@return Grafo igraph.
-	
-  '''
-
-    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
-    eknn = eMKnnGraph(X, n, e, pon=pon, dif=dif)
-    return eknn.union(MST)
+    @return Grafo igraph.
+    """
+    g = knnGraph(X, n, 'S', pon, dif, target, y)
+    return g
 
 
-def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity):
-    '''
-	
-	Retorna um grafo (igraph) gerado pela união de knn + k'
+def mKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
+    """
 
-	O grafo gerado contem len(X) vértices e as arestas são a maximização
-	das $k menores distâncias e das $k1 maiores distancias entre cada um dos vértices.
-	O grafo é um objeto da classe igraph
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param k Número de arestas para ser considerado no Knn.
-	
-	@param k1 Número de vertices mais distantes para serem ligados a cada vertice.
-	
-	@param t Modo da construção do grafo, 'M' para knn mutuo, 'S' para knn Simetrico(padrão).
+    Retorna um grafo(igraph) gerado pelo Knn mutuo.
 
-	@param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
+    O grafo gerado contem len(X) vértices e as arestas são a minimização
+    das $n menores distâncias entre cada um dos vértices.
+    O grafo é um objeto da classe igraph
 
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-	@return Grafo igraph.
-'''
+    @param n Número de arestas (máximo) para ser considerado para minimização.
 
-    g = knnGraph(X, k, t, pon, dif)
-    return g.union(kmnGraph(X, k1, pon, dif))
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+
+    """
+    g = knnGraph(X, n, 'M', pon, dif, target, y)
+    return g
 
 
-def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity):
-    '''
+def eSKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
+    """
 
-	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
-	com a maximização da vizinhaça e pelo Knn+k'
-	
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
-	
-	@param k Número de arestas para ser considerado no Knn.
-	
-	@param k1 Número de vertices mais distantes para serem ligados a cada vertice.
-	
-	@param e Distancia do raio de conecção.
-	
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    Retorna um grafo (igraph) gerado pela maximização da vizinhança e pelo SKnn
 
-	@param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-	@return Grafo igraph.
-  '''
+    @param n Número de arestas para ser considerado no SKnn.
 
-    knn = kmnnGraph(X, k, k1, dif=dif)
-    eN = eNGraph(X, e, dif=dif)
+    @param e Distancia do raio de conecção.
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+
+    """
+
+    knn = sKnnGraph(X, n, pon, dif, target, y)
+    eN = eNGraph(X, e, pon, dif, target, y)
     m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
     return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eKmnnMST(X, k, k1, e, pon=0, dif=similarity):
-    '''
+def eMKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
+    """
 
-	Retorna um grafo (igraph) gerado pela união da arvore geradora minima
-	com a maximização da vizinhaça e pelo Knn+k'
+    Retorna um grafo (igraph) gerado pela maximização da vizinhança e pelo MKnn
 
-	@param X Matriz numpy onde cada linha contem as características de um objeto.
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
 
-	@param k Número de arestas para ser considerado no Knn.
+    @param n Número de arestas para ser considerado no MKnn.
 
-	@param k1 Número de vertices mais distantes para serem ligados a cada vertice.
+    @param e Distancia do raio de conecção.
 
-	@param e Distancia do raio de conecção.
-
-	@param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
 
     @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
 
-	@return Grafo igraph.
-  '''
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
 
-    MST = knnGraph(X, len(X), pon=1, dif=dif).spanning_tree()
-    eknn = eKmnnGraph(X, k, k1, e, dif)
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+
+    """
+
+    knn = mKnnGraph(X, n, pon, dif, target, y)
+    eN = eNGraph(X, e, pon, dif, target, y)
+    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
+    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+
+
+def eSKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
+    """
+
+    Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo SKnn
+
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
+
+    @param n Número de arestas para ser considerado no MKnn.
+
+    @param e Distancia do raio de conecção.
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+
+    """
+
+    MST = knnGraph(X, len(X), pon=1, dif=dif, target=target, y=y).spanning_tree()
+    eknn = eSKnnGraph(X, n, e, pon, dif, target, y)
+    return eknn.union(MST)
+
+
+def eMKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
+    """
+
+    Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo MKnn
+
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
+
+    @param n Número de arestas para ser considerado no MKnn.
+
+    @param e Distancia do raio de conecção.
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+
+    """
+
+    MST = knnGraph(X, len(X), pon=1, dif=dif, target=target, y=y).spanning_tree()
+    eknn = eMKnnGraph(X, n, e, pon, dif, target, y)
+    return eknn.union(MST)
+
+
+def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity, target=0, y=None):
+    """
+
+    Retorna um grafo (igraph) gerado pela união de knn + k'
+
+    O grafo gerado contem len(X) vértices e as arestas são a maximização
+    das $k menores distâncias e das $k1 maiores distancias entre cada um dos vértices.
+    O grafo é um objeto da classe igraph
+
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
+
+    @param k Número de arestas para ser considerado no Knn.
+
+    @param k1 Número de vertices mais distantes para serem ligados a cada vertice.
+
+    @param t Modo da construção do grafo, 'M' para knn mutuo, 'S' para knn Simetrico(padrão).
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado(padrão), 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+    """
+
+    g = knnGraph(X, k, t, pon, dif, target, y)
+    return g.union(kmnGraph(X, k1, pon, dif, target, y))
+
+
+def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
+    """
+
+    Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo Knn+k'
+
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
+
+    @param k Número de arestas para ser considerado no Knn.
+
+    @param k1 Número de vertices mais distantes para serem ligados a cada vertice.
+
+    @param e Distancia do raio de conecção.
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+    """
+
+    knn = kmnnGraph(X, k, k1, pon=pon, dif=dif, target=target, y=y)
+    eN = eNGraph(X, e, dif=dif, target=target, y=y)
+    m = np.maximum(list(knn.get_adjacency()), list(eN.get_adjacency()))
+    return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
+
+
+def eKmnnMST(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
+    """
+
+    Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo Knn+k'
+
+    @param X Matriz numpy onde cada linha contem as características de um objeto.
+
+    @param k Número de arestas para ser considerado no Knn.
+
+    @param k1 Número de vertices mais distantes para serem ligados a cada vertice.
+
+    @param e Distancia do raio de conecção.
+
+    @param pon Modo de contrução do grafo, 0 para não ponderado, 1 para ponderado.
+
+    @param dif função usada para comparar a similaridade dos objetos, distancia euclidiana por padrão
+
+    @param target modo de construção do grafo, 0 para nós sem classe, 1 para nós com classe
+
+    @param y lista contendo a classe de cada um dos objetos em X
+
+    @return Grafo igraph.
+    """
+
+    MST = knnGraph(X, len(X), pon=1, dif=dif, target=target, y=y).spanning_tree()
+    eknn = eKmnnGraph(X, k, k1, e, dif, target, y)
     return eknn.union(MST)
 
 
@@ -418,19 +469,28 @@ def colocacao(c, y):
       @return Valor float.
     """
     m = {}
-    for p,i in enumerate(y):
+    for p, i in enumerate(y):
         if i in m:
             m[i].append(p)
         else:
             m[i] = [p]
     c1 = np.zeros((len(y))).astype('int')
-    for p,i in enumerate(c):
+    for p, i in enumerate(c):
         for j in i:
             c1[j] = p
-    #print(m.values())
-    return pureza(m.values(),c1)
+    return pureza(m.values(), c1)
+
 
 def media_harmonica(c, y):
+    """
+
+    Retorna um número real com valor da media harmonica entre pureza e colocação de uma clusterização.
+
+    @param c Clusterização ig.Graph.communit_...
+    @param y Matriz onde cada linha é o label do objeto (iniciando em 1).
+
+    @return Valor float.
+    """
     pf = pureza(c, y)
     cf = colocacao(c, y)
-    return (2*cf*pf)/(cf+pf)
+    return (2 * cf * pf) / (cf + pf)

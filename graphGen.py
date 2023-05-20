@@ -10,7 +10,7 @@ def similarity(x1, x2):
     return norm(x1 - x2)
 
 
-def knnGraph(X, n, t='S', pon=0, dif=similarity, target=0, y=None):
+def knnGraph(X, n: int, t='S', pon=0, dif=similarity, target: bool = False, y=None):
     """
 
     Retorna um grafo(igraph) gerado pelo Knn.
@@ -43,7 +43,7 @@ def knnGraph(X, n, t='S', pon=0, dif=similarity, target=0, y=None):
         neighbor_list = []
         distance_list = []
         for j in range(len(X)):
-            if target == 0 or y[i] == y[j]:
+            if not target or y[i] == y[j]:
                 if i == j:
                     continue
                 elif len(neighbor_list) < n:
@@ -69,10 +69,13 @@ def knnGraph(X, n, t='S', pon=0, dif=similarity, target=0, y=None):
         for i in g.get_edgelist():
             g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
 
+    if target:
+        g.vs["class"] = y
+
     return g
 
 
-def kmnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
+def kmnGraph(X, n: int, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo(igraph) gerado pelo Kmn.
@@ -95,14 +98,14 @@ def kmnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
 
     @return Grafo igraph.
     """
-    if target == 1 and y is None:
+    if target and y is None:
         raise Exception('Para criação de grafos com classes é necessario receber uma lista de classes')
     m = np.zeros((len(X), len(X)))
     for i in range(len(X)):
         la = []
         ld = []
         for j in range(len(X)):
-            if target == 0 or y[i] == y[j]:
+            if not target or y[i] == y[j]:
                 if i == j:
                     continue
                 elif len(la) < n:
@@ -125,10 +128,13 @@ def kmnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
         for i in g.get_edgelist():
             g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
 
+    if target:
+        g.vs["class"] = y
+
     return g
 
 
-def eNGraph(X, e, pon=0, dif=similarity, target=0, y=None):
+def eNGraph(X, e: float, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo(igraph) gerado por vizinhança e.
@@ -153,7 +159,7 @@ def eNGraph(X, e, pon=0, dif=similarity, target=0, y=None):
 
     """
 
-    if target == 1 and y is None:
+    if target and y is None:
         raise Exception('Para criação de grafos com classes é necessario receber uma lista de classes')
     m = np.zeros((len(X), len(X)))
     for i in range(len(X)):
@@ -169,10 +175,14 @@ def eNGraph(X, e, pon=0, dif=similarity, target=0, y=None):
         g.es["weight"] = 1.0
         for i in g.get_edgelist():
             g[i[0], i[1]] = dif(X[i[0]], X[i[1]])
+
+    if target:
+        g.vs["class"] = y
+
     return g
 
 
-def sKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
+def sKnnGraph(X, n, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo(igraph) gerado pelo Knn simétrico.
@@ -199,7 +209,7 @@ def sKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
     return g
 
 
-def mKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
+def mKnnGraph(X, n, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo(igraph) gerado pelo Knn mutuo.
@@ -227,7 +237,7 @@ def mKnnGraph(X, n, pon=0, dif=similarity, target=0, y=None):
     return g
 
 
-def eSKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
+def eSKnnGraph(X, n, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela maximização da vizinhança e pelo SKnn
@@ -256,7 +266,7 @@ def eSKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
     return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eMKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
+def eMKnnGraph(X, n, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela maximização da vizinhança e pelo MKnn
@@ -285,7 +295,7 @@ def eMKnnGraph(X, n, e, pon=0, dif=similarity, target=0, y=None):
     return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eSKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
+def eSKnnMST(X, n, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo SKnn
@@ -313,7 +323,7 @@ def eSKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
     return eknn.union(MST)
 
 
-def eMKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
+def eMKnnMST(X, n, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo MKnn
@@ -341,7 +351,7 @@ def eMKnnMST(X, n, e, pon=0, dif=similarity, target=0, y=None):
     return eknn.union(MST)
 
 
-def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity, target=0, y=None):
+def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela união de knn + k'
@@ -373,7 +383,7 @@ def kmnnGraph(X, k, k1, t='S', pon=0, dif=similarity, target=0, y=None):
     return g.union(kmnGraph(X, k1, pon, dif, target, y))
 
 
-def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
+def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo Knn+k'
@@ -403,7 +413,7 @@ def eKmnnGraph(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
     return ig.Graph.Adjacency(m.tolist(), mode=ig.ADJ_MAX)
 
 
-def eKmnnMST(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
+def eKmnnMST(X, k, k1, e, pon=0, dif=similarity, target=False, y=None):
     """
 
     Retorna um grafo (igraph) gerado pela união da arvore geradora minima com a maximização da vizinhaça e pelo Knn+k'
@@ -428,7 +438,7 @@ def eKmnnMST(X, k, k1, e, pon=0, dif=similarity, target=0, y=None):
     """
 
     MST = knnGraph(X, len(X), pon=1, dif=dif, target=target, y=y).spanning_tree()
-    eknn = eKmnnGraph(X, k, k1, e, dif, target, y)
+    eknn = eKmnnGraph(X, k, k1, e, dif=dif, target=target, y=y)
     return eknn.union(MST)
 
 

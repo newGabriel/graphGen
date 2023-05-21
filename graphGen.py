@@ -4,6 +4,7 @@
 import numpy as np
 import igraph as ig
 from numpy.linalg import norm
+from itertools import combinations
 
 
 def similarity(x1, x2):
@@ -440,6 +441,36 @@ def eKmnnMST(X, k, k1, e, pon=0, dif=similarity, target=False, y=None):
     MST = knnGraph(X, len(X), pon=1, dif=dif, target=target, y=y).spanning_tree()
     eknn = eKmnnGraph(X, k, k1, e, dif=dif, target=target, y=y)
     return eknn.union(MST)
+
+
+def graphFromSeries(serie):
+    """
+
+    Retorna um grafo (igraph) gerado pelo algoritimo de grafo de visibilidade para series numericas
+
+    @param serie array contendo os números da serie que será transformada em grafo
+
+    @return: grafo (igraph)
+    """
+
+    g = ig.Graph()
+    g.add_vertices(len(serie))
+    g.vs['mag'] = serie
+
+    enum_serie = list(enumerate(serie))
+
+    for [ta, ya], [tb, yb] in combinations(enum_serie, 2):
+        connected = True
+
+        for tc, yc in enum_serie[ta:tb]:
+            if tc != ta and tc != tb and yc > yb+(ya-yb)*((tb-tc)/(tb-ta)):
+                connected = False
+                break
+
+        if connected:
+            g.add_edge(ta, tb)
+
+    return g
 
 
 def pureza(c, y):

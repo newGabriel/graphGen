@@ -449,7 +449,7 @@ def graphFromSeries(serie, n=None):
 
     @param serie array contendo os números da serie que será transformada em grafo
 
-    @param n numero maximo de vinhos a ser analizado durante a construção do grafo
+    @param n numero maximo de vizinhos a ser analizado durante a construção do grafo
 
     @return: grafo (igraph)
     """
